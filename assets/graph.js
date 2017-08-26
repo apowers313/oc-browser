@@ -4,6 +4,8 @@ function selectableForceDirectedGraph() {
         shiftKey, ctrlKey;
 
     var nodeGraph = null;
+    var node;
+    var text;
     var xScale = d3.scale.linear()
         .domain([0, width]).range([0, width]);
     var yScale = d3.scale.linear()
@@ -38,6 +40,8 @@ function selectableForceDirectedGraph() {
     function redraw() {
         vis.attr("transform",
             "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")");
+            // text.style("font-size",  "10px");
+            // g.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
     }
 
     var brusher = d3.svg.brush()
@@ -66,7 +70,7 @@ function selectableForceDirectedGraph() {
 
     var svg_graph = svg.append('svg:g')
         .call(zoomer);
-        //.call(brusher)
+    //.call(brusher)
 
     var rect = svg_graph.append('svg:rect')
         .attr('width', width)
@@ -108,11 +112,11 @@ function selectableForceDirectedGraph() {
         .attr("class", "link")
         .selectAll("line");
 
-    var node = vis.append("g")
+    var g = vis.append("g")
         .attr("class", "node")
         .selectAll("circle");
 
-     function center_view() {
+    function center_view() {
         // Center the view on the molecule(s) and scale it so that everything
         // fits in the window
 
@@ -184,7 +188,7 @@ function selectableForceDirectedGraph() {
             });
     }
 
-    d3.json("graph.json", function(error, graph) {
+    d3.json("test.json", function(error, graph) {
         nodeGraph = graph;
 
         graph.links.forEach(function(d) {
@@ -194,6 +198,7 @@ function selectableForceDirectedGraph() {
 
         link = link.data(graph.links).enter().append("line")
             .attr("x1", function(d) {
+                console.log (d);
                 return d.source.x;
             })
             .attr("y1", function(d) {
@@ -214,6 +219,7 @@ function selectableForceDirectedGraph() {
             .links(graph.links)
             .size([width, height])
             .start();
+        window.force = force;
 
         function dragstarted(d) {
             d3.event.sourceEvent.stopPropagation();
@@ -253,29 +259,22 @@ function selectableForceDirectedGraph() {
 
             force.resume();
         }
-        node = node
+
+        // TEXT
+        new d3plus.TextBox()
+            .select("g.node")
             .data(graph.nodes)
-            .enter()
-            // .append("circle")
-            // .attr("r", 4)
-            // .attr("cx", function(d) {
-            //     return d.x;
-            // })
-            // .attr("cy", function(d) {
-            //     return d.y;
-            // })
-            .append("rect")
-            .attr("x", function(d) {
-                return d.x-50;
-            })
-            .attr("y", function(d) {
-                return d.y-31;
-            })
-            .attr("rx", "15")
-            .attr("ry", "15")
-            .attr("width", "100")
-            .attr("height","62")
-            .on("dblclick", function() {
+            .fontSize(8)
+            .pointerEvents(false)
+            .width(100)
+            .height(62)
+            .render();
+        text = node = window.d3PlusTextBox = d3.selectAll(".d3plus-textBox");
+
+        node.data(graph.nodes).enter();
+        node
+            .on("dblclick", function(d) {
+                d.fixed = false;
                 d3.event.stopPropagation();
             })
             .on("click", function(d) {
@@ -292,36 +291,47 @@ function selectableForceDirectedGraph() {
                 // always select this node
                 d3.select(this).classed("selected", d.selected = !d.previouslySelected);
             })
-
-        .on("mouseup", function() {
+            .on("mouseup", function() {
                 //if (d.selected && shiftKey) d3.select(this).classed("selected", d.selected = false);
             })
             .call(d3.behavior.drag()
                 .on("dragstart", dragstarted)
                 .on("drag", dragged)
                 .on("dragend", dragended));
+        // NODE
+        d3.selectAll("g.d3plus-textBox")
+            .insert("rect", "text")
+            .attr("class", "node article")
+            .attr("rx", "15")
+            .attr("ry", "15")
+            .attr("width", "100")
+            .attr("height", "62");
 
+        // TICK
         function tick() {
+            text.attr("transform", function(d) {
+                return "translate(" + d.x + "," + d.y + ")";
+            });
+
             link.attr("x1", function(d) {
-                    return d.source.x;
+                    return d.source.x + 50;
                 })
                 .attr("y1", function(d) {
-                    return d.source.y;
+                    return d.source.y + 31;
                 })
                 .attr("x2", function(d) {
-                    return d.target.x;
+                    return d.target.x + 50;
                 })
                 .attr("y2", function(d) {
-                    return d.target.y;
+                    return d.target.y + 31;
                 });
 
-            node.attr('x', function(d) {
-                    return d.x-50;
-                })
-                .attr('y', function(d) {
-                    return d.y-31;
-                });
-
+            // node.attr('x', function(d, i) {
+            //         return force.nodes()[i].x - 50;
+            //     })
+            //     .attr('y', function(d, i) {
+            //         return force.nodes()[i].y - 31;
+            //     });
         }
 
         force.on("tick", tick);
@@ -332,8 +342,6 @@ function selectableForceDirectedGraph() {
     function keydown() {
         var shiftKey = d3.event.shiftKey || d3.event.metaKey;
         // var ctrlKey = d3.event.ctrlKey;
-
-        console.log('d3.event', d3.event);
 
         if (d3.event.keyCode == 67) { //the 'c' key
             center_view();
@@ -370,8 +378,8 @@ function selectableForceDirectedGraph() {
     }
 
     window.addEventListener("resize", resize);
+
     function resize() {
-        console.log ("resize!");
         var width = window.innerWidth;
         var height = window.innerHeight;
 
@@ -382,5 +390,5 @@ function selectableForceDirectedGraph() {
 }
 
 /* JSHINT */
-/* globals d3 */
+/* globals d3, d3plus */
 /* exported selectableForceDirectedGraph */
